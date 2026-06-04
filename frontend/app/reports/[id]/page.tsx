@@ -12,6 +12,7 @@ type Report = {
   size_bytes: number;
   status: string;
   created_at: string;
+  frames?: string[];
 };
 
 type ReportDetailPageProps = {
@@ -24,29 +25,31 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [reportId, setReportId] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState("");
 
+  async function loadReport(id: string) {
+    const response = await fetch(`http://localhost:8000/reports/${id}`);
+
+    if (!response.ok) {
+      throw new Error("Could not load report.");
+    }
+
+    const data = (await response.json()) as Report | { error: string };
+
+    if ("error" in data) {
+      throw new Error(data.error);
+    }
+
+    setReport(data);
+  }
+
   useEffect(() => {
-    async function loadReport() {
+    async function loadInitialReport() {
       try {
         const resolvedParams = await params;
         setReportId(resolvedParams.id);
-
-        const response = await fetch(
-          `http://localhost:8000/reports/${resolvedParams.id}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Could not load report.");
-        }
-
-        const data = (await response.json()) as Report | { error: string };
-
-        if ("error" in data) {
-          throw new Error(data.error);
-        }
-
-        setReport(data);
+        await loadReport(resolvedParams.id);
       } catch (loadError) {
         setError(
           loadError instanceof Error
@@ -58,8 +61,44 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       }
     }
 
-    loadReport();
+    loadInitialReport();
   }, [params]);
+
+  async function handleExtractFrames() {
+    if (!reportId) return;
+
+    try {
+      setError("");
+      setIsExtracting(true);
+
+      const response = await fetch(
+        `http://localhost:8000/reports/${reportId}/extract-frames`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Frame extraction failed.");
+      }
+
+      const data = (await response.json()) as { error?: string };
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      await loadReport(reportId);
+    } catch (extractError) {
+      setError(
+        extractError instanceof Error
+          ? extractError.message
+          : "Something went wrong."
+      );
+    } finally {
+      setIsExtracting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
@@ -74,11 +113,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
         {error && (
           <div className="mt-8 rounded-lg border border-red-800 bg-red-950 p-5 text-red-100">
-            <p className="font-semibold">Could not load report</p>
+            <p className="font-semibold">Something went wrong</p>
             <p className="mt-1 text-sm">{error}</p>
-            {reportId && (
-              <p className="mt-3 text-xs text-red-300">Report ID: {reportId}</p>
-            )}
           </div>
         )}
 
@@ -136,15 +172,45 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               </div>
 
               <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-                <h2 className="font-semibold">AI processing</h2>
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="font-semibold">AI processing</h2>
+
+                  <button
+                    onClick={handleExtractFrames}
+                    disabled={isExtracting}
+                    className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isExtracting ? "Extracting..." : "Extract frames"}
+                  </button>
+                </div>
 
                 <div className="mt-4 space-y-3 text-sm text-slate-300">
-                  <p>Frame extraction: not started</p>
+                  <p>
+                    Frame extraction:{" "}
+                    {report.frames?.length ? "completed" : "not started"}
+                  </p>
                   <p>OCR detection: not started</p>
                   <p>Bug report generation: not started</p>
                 </div>
               </div>
             </div>
+
+            {report.frames && report.frames.length > 0 && (
+              <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-5">
+                <h2 className="font-semibold">Extracted frames</h2>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  {report.frames.map((frame) => (
+                    <img
+                      key={frame}
+                      src={`http://localhost:8000/${frame}`}
+                      alt="Extracted video frame"
+                      className="aspect-video rounded-md border border-slate-800 object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </section>

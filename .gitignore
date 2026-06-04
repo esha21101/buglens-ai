@@ -29,6 +29,7 @@ frontend/build/
 backend/.venv/
 backend/uploads/
 backend/data/
+backend/frames/
 backend/__pycache__/
 __pycache__/
 *.pyc
