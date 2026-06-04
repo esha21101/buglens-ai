@@ -28,6 +28,7 @@ frontend/build/
 # Python
 backend/.venv/
 backend/uploads/
+backend/data/
 backend/__pycache__/
 __pycache__/
 *.pyc
