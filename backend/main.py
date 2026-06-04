@@ -56,6 +56,15 @@ def get_reports():
     reports = load_reports()
     return {"reports": reports}
 
+@app.get("/reports/{report_id}")
+def get_report(report_id: str):
+    reports = load_reports()
+
+    for report in reports:
+        if report["id"] == report_id:
+            return report
+
+    return {"error": "Report not found"}
 
 @app.post("/reports/upload")
 async def upload_report(

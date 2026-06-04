@@ -112,9 +112,10 @@ export default function DashboardPage() {
           {!isLoading && !error && reports.length > 0 && (
             <div className="divide-y divide-slate-800">
               {reports.map((report) => (
-                <div
+                <a
                   key={report.id}
-                  className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_auto]"
+                  href={`/reports/${report.id}`}
+                  className="grid gap-3 px-5 py-4 transition hover:bg-slate-800/60 md:grid-cols-[1fr_auto]"
                 >
                   <div>
                     <p className="font-medium">{report.title}</p>
@@ -132,7 +133,7 @@ export default function DashboardPage() {
                       {report.status}
                     </span>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           )}
