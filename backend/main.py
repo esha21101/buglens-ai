@@ -23,6 +23,7 @@ DATA_DIR = Path("data")
 FRAMES_DIR = Path("frames")
 app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
 REPORTS_FILE = DATA_DIR / "reports.json"
+TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
@@ -53,6 +54,25 @@ def find_report(report_id: str):
             return reports, index, report
 
     return reports, None, None
+
+def detect_error_keywords(text: str):
+    keywords = [
+        "error",
+        "failed",
+        "exception",
+        "undefined",
+        "null",
+        "unauthorized",
+        "forbidden",
+        "not found",
+        "404",
+        "500",
+        "timeout",
+        "crash",
+    ]
+
+    lower_text = text.lower()
+    return [keyword for keyword in keywords if keyword in lower_text]
 
 @app.get("/")
 def root():
