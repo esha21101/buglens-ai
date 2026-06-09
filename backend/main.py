@@ -1,5 +1,9 @@
 import json
 import subprocess
+import pytesseract
+
+from PIL import Image
+
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -24,6 +28,7 @@ FRAMES_DIR = Path("frames")
 app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
 REPORTS_FILE = DATA_DIR / "reports.json"
 TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
@@ -154,6 +159,56 @@ def extract_report_frames(report_id: str):
         "status": report["status"],
         "frames": frame_paths,
     }
+    
+    
+@app.post("/reports/{report_id}/extract-text")
+def extract_text(report_id: str):
+    reports, report_index, report = find_report(report_id)
+
+    if report_index is None or report is None:
+        return {"error": "Report not found"}
+
+    frame_paths = report.get("frames", [])
+
+    if not frame_paths:
+        return {"error": "No extracted frames found"}
+
+    extracted_text = []
+    detected_keywords = []
+
+    for frame_path in frame_paths:
+        image = Image.open(frame_path)
+
+        text = pytesseract.image_to_string(image)
+
+        extracted_text.append(
+            {
+                "frame": frame_path,
+                "text": text.strip(),
+            }
+        )
+
+        detected_keywords.extend(
+            detect_error_keywords(text)
+        )
+
+    report["ocr_text"] = extracted_text
+    report["detected_keywords"] = list(set(detected_keywords))
+    report["status"] = "text_extracted"
+    report["updated_at"] = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    reports[report_index] = report
+
+    save_reports(reports)
+
+    return {
+        "id": report_id,
+        "status": report["status"],
+        "ocr_text": extracted_text,
+        "detected_keywords": report["detected_keywords"],
+    }    
 
 @app.post("/reports/upload")
 async def upload_report(
