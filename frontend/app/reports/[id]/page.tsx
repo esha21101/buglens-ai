@@ -13,6 +13,13 @@ type Report = {
   status: string;
   created_at: string;
   frames?: string[];
+
+  ocr_text?: {
+    frame: string;
+    text: string;
+  }[];
+
+  detected_keywords?: string[]; 
 };
 
 type ReportDetailPageProps = {
@@ -26,6 +33,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isExtractingText, setIsExtractingText] = useState(false);
   const [error, setError] = useState("");
 
   async function loadReport(id: string) {
@@ -100,6 +108,42 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   }
 
+  async function handleExtractText() {
+  if (!reportId) return;
+
+  try {
+    setError("");
+    setIsExtractingText(true);
+
+    const response = await fetch(
+      `http://localhost:8000/reports/${reportId}/extract-text`,
+      {
+        method: "POST",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("OCR extraction failed.");
+    }
+
+    const data = (await response.json()) as { error?: string };
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    await loadReport(reportId);
+  } catch (extractError) {
+    setError(
+      extractError instanceof Error
+        ? extractError.message
+        : "Something went wrong."
+    );
+  } finally {
+    setIsExtractingText(false);
+  }
+}
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-4xl">
@@ -173,23 +217,36 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
               <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
                 <div className="flex items-center justify-between gap-4">
-                  <h2 className="font-semibold">AI processing</h2>
+  <h2 className="font-semibold">AI processing</h2>
 
-                  <button
-                    onClick={handleExtractFrames}
-                    disabled={isExtracting}
-                    className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isExtracting ? "Extracting..." : "Extract frames"}
-                  </button>
-                </div>
+  <div className="flex gap-2">
+    <button
+      onClick={handleExtractFrames}
+      disabled={isExtracting}
+      className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isExtracting ? "Extracting..." : "Extract frames"}
+    </button>
+
+    <button
+      onClick={handleExtractText}
+      disabled={isExtractingText}
+      className="rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isExtractingText ? "Extracting..." : "Extract text"}
+    </button>
+  </div>
+</div>
 
                 <div className="mt-4 space-y-3 text-sm text-slate-300">
                   <p>
                     Frame extraction:{" "}
                     {report.frames?.length ? "completed" : "not started"}
                   </p>
-                  <p>OCR detection: not started</p>
+                  <p>
+  OCR detection:{" "}
+  {report.ocr_text?.length ? "completed" : "not started"}
+</p>
                   <p>Bug report generation: not started</p>
                 </div>
               </div>
@@ -211,8 +268,32 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 </div>
               </div>
             )}
-          </>
-        )}
+          {report.ocr_text && report.ocr_text.length > 0 && (
+  <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-5">
+    <h2 className="font-semibold">Detected Text</h2>
+
+    <div className="mt-4 space-y-4">
+      {report.ocr_text.map((item, index) => (
+        <div
+          key={index}
+          className="rounded-md border border-slate-800 bg-slate-950 p-4"
+        >
+          <p className="text-sm font-semibold text-cyan-300">
+            Frame {index + 1}
+          </p>
+
+          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">
+            {item.text || "No text detected"}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+</>
+)}
+            
       </section>
     </main>
   );
