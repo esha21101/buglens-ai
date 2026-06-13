@@ -19,7 +19,9 @@ type Report = {
     text: string;
   }[];
 
-  detected_keywords?: string[]; 
+  detected_keywords?: string[];
+
+  ai_report?: string; 
 };
 
 type ReportDetailPageProps = {
@@ -34,6 +36,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isExtractingText, setIsExtractingText] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [error, setError] = useState("");
 
   async function loadReport(id: string) {
@@ -144,6 +147,43 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   }
 }
 
+async function handleGenerateReport() {
+  if (!reportId) return;
+
+  try {
+    setError("");
+    setIsGeneratingReport(true);
+
+    const response = await fetch(
+      `http://localhost:8000/reports/${reportId}/generate-report`,
+      {
+        method: "POST",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Report generation failed.");
+    }
+
+    const data = (await response.json()) as { error?: string };
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    await loadReport(reportId);
+  } catch (generateError) {
+    setError(
+      generateError instanceof Error
+        ? generateError.message
+        : "Something went wrong."
+    );
+  } finally {
+    setIsGeneratingReport(false);
+  }
+}
+
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-4xl">
@@ -235,6 +275,14 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     >
       {isExtractingText ? "Extracting..." : "Extract text"}
     </button>
+
+    <button
+    onClick={handleGenerateReport}
+    disabled={isGeneratingReport}
+    className="rounded-md bg-purple-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+  >
+    {isGeneratingReport ? "Generating..." : "Generate report"}
+  </button>
   </div>
 </div>
 
@@ -247,7 +295,10 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   OCR detection:{" "}
   {report.ocr_text?.length ? "completed" : "not started"}
 </p>
-                  <p>Bug report generation: not started</p>
+                  <p>
+  Bug report generation:{" "}
+  {report.ai_report ? "completed" : "not started"}
+</p>
                 </div>
               </div>
             </div>
@@ -290,6 +341,19 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     </div>
   </div>
 )}
+
+{report.ai_report && (
+  <div className="mt-8 rounded-lg border border-purple-800 bg-slate-900 p-5">
+    <h2 className="font-semibold text-purple-300">
+      AI Generated Bug Report
+    </h2>
+
+    <div className="mt-4 whitespace-pre-wrap rounded-md bg-slate-950 p-4 text-sm text-slate-200">
+      {report.ai_report}
+    </div>
+  </div>
+)}
+
 
 </>
 )}
