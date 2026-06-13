@@ -1,6 +1,10 @@
 import json
 import subprocess
+import os
+
 import pytesseract
+import google.generativeai as genai
+from dotenv import load_dotenv
 
 from PIL import Image
 
@@ -11,6 +15,12 @@ from uuid import uuid4
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+load_dotenv()
+
+genai.configure(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
 app = FastAPI(title="BugLens AI API")
 
@@ -209,6 +219,58 @@ def extract_text(report_id: str):
         "ocr_text": extracted_text,
         "detected_keywords": report["detected_keywords"],
     }    
+    
+@app.post("/reports/{report_id}/generate-report")
+def generate_report(report_id: str):
+    reports, report_index, report = find_report(report_id)
+
+    if report_index is None or report is None:
+        return {"error": "Report not found"}
+
+    ocr_text = report.get("ocr_text", [])
+
+    if not ocr_text:
+        return {"error": "No OCR text found. Run OCR first."}
+
+    combined_text = "\n".join(
+        item.get("text", "")
+        for item in ocr_text
+    )
+
+    prompt = f"""
+You are a software QA engineer.
+
+Analyze the following OCR text extracted from a screen recording.
+
+OCR TEXT:
+{combined_text}
+
+Generate a bug report in this exact format:
+
+Title:
+Severity:
+Root Cause:
+Expected Behavior:
+Actual Behavior:
+Steps To Reproduce:
+"""
+
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    response = model.generate_content(prompt)
+
+    report["ai_report"] = response.text
+    report["status"] = "report_generated"
+    report["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    reports[report_index] = report
+    save_reports(reports)
+
+    return {
+        "status": report["status"],
+        "ai_report": report["ai_report"],
+    }
+    
 
 @app.post("/reports/upload")
 async def upload_report(
