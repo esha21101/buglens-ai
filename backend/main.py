@@ -232,10 +232,15 @@ def generate_report(report_id: str):
     if not ocr_text:
         return {"error": "No OCR text found. Run OCR first."}
 
-    combined_text = "\n".join(
-        item.get("text", "")
-        for item in ocr_text
-    )
+    unique_texts = []
+
+    for item in ocr_text:
+        text = item.get("text", "").strip()
+
+        if text and text not in unique_texts:
+            unique_texts.append(text)
+
+    combined_text = "\n\n".join(unique_texts)  
 
     prompt = f"""
 You are a software QA engineer.

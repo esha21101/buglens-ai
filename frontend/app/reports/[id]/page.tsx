@@ -184,6 +184,32 @@ async function handleGenerateReport() {
 }
 
 
+function getSeverityColor(reportText: string) {
+  const severityMatch = reportText.match(
+    /\*?\*?Severity:\*?\*?\s*(.*)/i
+  );
+
+  const severity = severityMatch?.[1]?.trim().toLowerCase() || "";
+
+  if (severity.includes("critical")) {
+    return "bg-red-600 text-white";
+  }
+
+  if (severity.includes("high")) {
+    return "bg-orange-500 text-white";
+  }
+
+  if (severity.includes("medium")) {
+    return "bg-yellow-500 text-black";
+  }
+
+  if (severity.includes("low")) {
+    return "bg-green-600 text-white";
+  }
+
+  return "bg-slate-600 text-white";
+}
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-4xl">
@@ -363,9 +389,22 @@ async function handleGenerateReport() {
 
 {report.ai_report && (
   <div className="mt-8 rounded-lg border border-purple-800 bg-slate-900 p-5">
-    <h2 className="font-semibold text-purple-300">
-      AI Generated Bug Report
-    </h2>
+    <div className="flex items-center justify-between">
+      <h2 className="font-semibold text-purple-300">
+        AI Generated Bug Report
+      </h2>
+
+      <span
+        className={`rounded-full px-3 py-1 text-xs font-semibold ${getSeverityColor(
+          report.ai_report
+        )}`}
+      >
+        {
+  report.ai_report.match(/\*?\*?Severity:\*?\*?\s*(.*)/i)?.[1] ||
+  "Unknown"
+}
+      </span>
+    </div>
 
     <div className="mt-4 whitespace-pre-wrap rounded-md bg-slate-950 p-4 text-sm text-slate-200">
       {report.ai_report}
