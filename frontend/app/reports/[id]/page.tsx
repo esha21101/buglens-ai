@@ -210,6 +210,31 @@ function getSeverityColor(reportText: string) {
   return "bg-slate-600 text-white";
 }
 
+function downloadReport() {
+  if (!report?.ai_report) return;
+
+  const blob = new Blob(
+    [report.ai_report],
+    { type: "text/plain" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `bug-report-${report.id}.txt`;
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+}
+
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-4xl">
@@ -390,11 +415,20 @@ function getSeverityColor(reportText: string) {
 {report.ai_report && (
   <div className="mt-8 rounded-lg border border-purple-800 bg-slate-900 p-5">
     <div className="flex items-center justify-between">
-      <h2 className="font-semibold text-purple-300">
-        AI Generated Bug Report
-      </h2>
+  <div className="flex items-center gap-3">
+    <h2 className="font-semibold text-purple-300">
+      AI Generated Bug Report
+    </h2>
 
-      <span
+    <button
+      onClick={downloadReport}
+      className="rounded-md bg-cyan-500 px-3 py-1 text-xs font-semibold text-white"
+    >
+      Download
+    </button>
+  </div>
+
+  <span
         className={`rounded-full px-3 py-1 text-xs font-semibold ${getSeverityColor(
           report.ai_report
         )}`}
