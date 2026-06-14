@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { jsPDF } from "jspdf";
+
 
 type Report = {
   id: string;
@@ -213,25 +215,21 @@ function getSeverityColor(reportText: string) {
 function downloadReport() {
   if (!report?.ai_report) return;
 
-  const blob = new Blob(
-    [report.ai_report],
-    { type: "text/plain" }
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text("BugLens AI Report", 20, 20);
+
+  doc.setFontSize(12);
+
+  const lines = doc.splitTextToSize(
+    report.ai_report,
+    170
   );
 
-  const url = URL.createObjectURL(blob);
+  doc.text(lines, 20, 35);
 
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = `bug-report-${report.id}.txt`;
-
-  document.body.appendChild(link);
-
-  link.click();
-
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
+  doc.save(`bug-report-${report.id}.pdf`);
 }
 
 
