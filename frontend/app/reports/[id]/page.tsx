@@ -319,6 +319,25 @@ async function handleGenerateReport() {
                 </div>
               </div>
             )}
+
+          {report.detected_keywords &&
+  report.detected_keywords.length > 0 && (
+    <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-5">
+      <h2 className="font-semibold">Detected Keywords</h2>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {report.detected_keywords.map((keyword) => (
+          <span
+            key={keyword}
+            className="rounded-full bg-red-500/20 px-3 py-1 text-sm font-medium text-red-300"
+          >
+            {keyword}
+          </span>
+        ))}
+      </div>
+    </div>
+)}
+
           {report.ocr_text && report.ocr_text.length > 0 && (
   <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-5">
     <h2 className="font-semibold">Detected Text</h2>
