@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     async function loadReports() {
@@ -48,13 +49,18 @@ export default function DashboardPage() {
 
 
   const filteredReports = reports.filter((report) => {
-    const search = searchTerm.toLowerCase();
+  const search = searchTerm.toLowerCase();
 
-    return (
-      report.title.toLowerCase().includes(search) ||
-      report.description.toLowerCase().includes(search)
-    );
-  });
+  const matchesSearch =
+    report.title.toLowerCase().includes(search) ||
+    report.description.toLowerCase().includes(search);
+
+  const matchesStatus =
+    statusFilter === "all" ||
+    report.status === statusFilter;
+
+  return matchesSearch && matchesStatus;
+});
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
@@ -96,14 +102,26 @@ export default function DashboardPage() {
             <p className="mt-2 text-3xl font-semibold">0</p>
           </div>
         </div>
-        <div className="mt-8">
+       <div className="mt-8 flex gap-4">
   <input
     type="text"
     placeholder="Search reports..."
     value={searchTerm}
     onChange={(event) => setSearchTerm(event.target.value)}
-    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+    className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
   />
+
+  <select
+    value={statusFilter}
+    onChange={(event) => setStatusFilter(event.target.value)}
+    className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white focus:border-cyan-400 focus:outline-none"
+  >
+    <option value="all">All</option>
+    <option value="uploaded">Uploaded</option>
+    <option value="frames_extracted">Frames Extracted</option>
+    <option value="text_extracted">Text Extracted</option>
+    <option value="report_generated">Report Generated</option>
+  </select>
 </div>
 
         <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900">
