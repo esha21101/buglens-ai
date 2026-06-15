@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Report = {
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function loadReports() {
@@ -44,26 +46,36 @@ export default function DashboardPage() {
     loadReports();
   }, []);
 
+
+  const filteredReports = reports.filter((report) => {
+    const search = searchTerm.toLowerCase();
+
+    return (
+      report.title.toLowerCase().includes(search) ||
+      report.description.toLowerCase().includes(search)
+    );
+  });
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-5xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <a href="/" className="text-sm font-medium text-cyan-300">
+            <Link href="/" className="text-sm font-medium text-cyan-300">
               BugLens AI
-            </a>
+            </Link>
             <h1 className="mt-6 text-3xl font-semibold">Dashboard</h1>
             <p className="mt-2 text-slate-300">
               Track uploaded bug recordings and report status.
             </p>
           </div>
 
-          <a
-            href="/reports/new"
-            className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950"
-          >
-            New report
-          </a>
+          <Link
+  href="/reports/new"
+  className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950"
+>
+  New report
+</Link>
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -84,6 +96,15 @@ export default function DashboardPage() {
             <p className="mt-2 text-3xl font-semibold">0</p>
           </div>
         </div>
+        <div className="mt-8">
+  <input
+    type="text"
+    placeholder="Search reports..."
+    value={searchTerm}
+    onChange={(event) => setSearchTerm(event.target.value)}
+    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+  />
+</div>
 
         <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900">
           <div className="border-b border-slate-800 px-5 py-4">
@@ -100,7 +121,7 @@ export default function DashboardPage() {
             <p className="px-5 py-6 text-sm text-red-300">{error}</p>
           )}
 
-          {!isLoading && !error && reports.length === 0 && (
+          {!isLoading && !error && filteredReports.length === 0 && (
             <div className="px-5 py-10 text-center">
               <p className="font-medium">No reports yet</p>
               <p className="mt-2 text-sm text-slate-400">
@@ -111,12 +132,12 @@ export default function DashboardPage() {
 
           {!isLoading && !error && reports.length > 0 && (
             <div className="divide-y divide-slate-800">
-              {reports.map((report) => (
-                <a
-                  key={report.id}
-                  href={`/reports/${report.id}`}
-                  className="grid gap-3 px-5 py-4 transition hover:bg-slate-800/60 md:grid-cols-[1fr_auto]"
-                >
+              {filteredReports.map((report) => (
+                <Link
+  key={report.id}
+  href={`/reports/${report.id}`}
+  className="grid gap-3 px-5 py-4 transition hover:bg-slate-800/60 md:grid-cols-[1fr_auto]"
+>
                   <div>
                     <p className="font-medium">{report.title}</p>
                     <p className="mt-1 text-sm text-slate-400">
@@ -133,7 +154,7 @@ export default function DashboardPage() {
                       {report.status}
                     </span>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           )}
