@@ -335,20 +335,61 @@ function downloadReport() {
   </div>
 </div>
 
-                <div className="mt-4 space-y-3 text-sm text-slate-300">
-                  <p>
-                    Frame extraction:{" "}
-                    {report.frames?.length ? "completed" : "not started"}
-                  </p>
-                  <p>
-  OCR detection:{" "}
-  {report.ocr_text?.length ? "completed" : "not started"}
-</p>
-                  <p>
-  Bug report generation:{" "}
-  {report.ai_report ? "completed" : "not started"}
-</p>
-                </div>
+                <div className="mt-6 flex items-center justify-between">
+
+  <div className="flex flex-col items-center">
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">
+      ✓
+    </div>
+    <p className="mt-2 text-xs text-slate-300">Upload</p>
+  </div>
+
+  <div className="h-1 flex-1 bg-slate-700 mx-2" />
+
+  <div className="flex flex-col items-center">
+    <div
+      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white ${
+        report.frames?.length
+          ? "bg-emerald-500"
+          : "bg-slate-700"
+      }`}
+    >
+      ✓
+    </div>
+    <p className="mt-2 text-xs text-slate-300">Frames</p>
+  </div>
+
+  <div className="h-1 flex-1 bg-slate-700 mx-2" />
+
+  <div className="flex flex-col items-center">
+    <div
+      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white ${
+        report.ocr_text?.length
+          ? "bg-emerald-500"
+          : "bg-slate-700"
+      }`}
+    >
+      ✓
+    </div>
+    <p className="mt-2 text-xs text-slate-300">OCR</p>
+  </div>
+
+  <div className="h-1 flex-1 bg-slate-700 mx-2" />
+
+  <div className="flex flex-col items-center">
+    <div
+      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white ${
+        report.ai_report
+          ? "bg-emerald-500"
+          : "bg-slate-700"
+      }`}
+    >
+      ✓
+    </div>
+    <p className="mt-2 text-xs text-slate-300">AI Report</p>
+  </div>
+
+</div>
               </div>
             </div>
 
