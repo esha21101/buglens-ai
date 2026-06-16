@@ -48,6 +48,25 @@ export default function DashboardPage() {
   }, []);
 
 
+  function getStatusLabel(status: string) {
+  switch (status) {
+    case "uploaded":
+      return "Uploaded";
+
+    case "frames_extracted":
+      return "Frames Extracted";
+
+    case "text_extracted":
+      return "OCR Complete";
+
+    case "report_generated":
+      return "AI Report Ready";
+
+    default:
+      return status;
+  }
+}
+
   const filteredReports = reports.filter((report) => {
   const search = searchTerm.toLowerCase();
 
@@ -210,7 +229,7 @@ export default function DashboardPage() {
       : "border-emerald-800 bg-emerald-950 text-emerald-200"
   }`}
 >
-  {report.status}
+  {getStatusLabel(report.status)}
 </span>
                   </div>
                 </Link>
