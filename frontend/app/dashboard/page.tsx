@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   useEffect(() => {
     async function loadReports() {
@@ -67,19 +68,33 @@ export default function DashboardPage() {
   }
 }
 
-  const filteredReports = reports.filter((report) => {
-  const search = searchTerm.toLowerCase();
+  const filteredReports = reports
+  .filter((report) => {
+    const search = searchTerm.toLowerCase();
 
-  const matchesSearch =
-    report.title.toLowerCase().includes(search) ||
-    report.description.toLowerCase().includes(search);
+    const matchesSearch =
+      report.title.toLowerCase().includes(search) ||
+      report.description.toLowerCase().includes(search);
 
-  const matchesStatus =
-    statusFilter === "all" ||
-    report.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      report.status === statusFilter;
 
-  return matchesSearch && matchesStatus;
-});
+    return matchesSearch && matchesStatus;
+  })
+  .sort((a, b) => {
+    if (sortOrder === "newest") {
+      return (
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+      );
+    }
+
+    return (
+      new Date(a.created_at).getTime() -
+      new Date(b.created_at).getTime()
+    );
+  });
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
@@ -159,7 +174,19 @@ export default function DashboardPage() {
     <option value="text_extracted">Text Extracted</option>
     <option value="report_generated">Report Generated</option>
   </select>
+
+  <select
+  value={sortOrder}
+  onChange={(event) => setSortOrder(event.target.value)}
+  className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white focus:border-cyan-400 focus:outline-none"
+>
+  <option value="newest">Newest First</option>
+  <option value="oldest">Oldest First</option>
+</select>
+
 </div>
+
+
 
         <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900">
           <div className="border-b border-slate-800 px-5 py-4">
