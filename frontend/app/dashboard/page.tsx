@@ -186,9 +186,19 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="rounded-full border border-emerald-800 bg-emerald-950 px-3 py-1 text-xs font-medium text-emerald-200">
-                      {report.status}
-                    </span>
+                    <span
+  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+    report.status === "uploaded"
+      ? "border-blue-800 bg-blue-950 text-blue-200"
+      : report.status === "frames_extracted"
+      ? "border-yellow-800 bg-yellow-950 text-yellow-200"
+      : report.status === "text_extracted"
+      ? "border-purple-800 bg-purple-950 text-purple-200"
+      : "border-emerald-800 bg-emerald-950 text-emerald-200"
+  }`}
+>
+  {report.status}
+</span>
                   </div>
                 </Link>
               ))}
