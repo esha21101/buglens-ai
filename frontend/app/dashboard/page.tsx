@@ -84,7 +84,7 @@ export default function DashboardPage() {
 </Link>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-4">
           <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
             <p className="text-sm text-slate-400">Total reports</p>
             <p className="mt-2 text-3xl font-semibold">{reports.length}</p>
@@ -98,11 +98,29 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-            <p className="text-sm text-slate-400">Ready for AI</p>
-            <p className="mt-2 text-3xl font-semibold">0</p>
-          </div>
-        </div>
-       <div className="mt-8 flex gap-4">
+  <p className="text-sm text-slate-400">OCR Complete</p>
+  <p className="mt-2 text-3xl font-semibold">
+    {
+      reports.filter(
+        (report) => report.status === "text_extracted"
+      ).length
+    }
+  </p>
+</div>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+  <p className="text-sm text-slate-400">AI Reports</p>
+  <p className="mt-2 text-3xl font-semibold">
+    {
+      reports.filter(
+        (report) => report.status === "report_generated"
+      ).length
+    }
+  </p>
+</div>
+
+</div>
+      <div className="mt-8 flex gap-4">
   <input
     type="text"
     placeholder="Search reports..."
