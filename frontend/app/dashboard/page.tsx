@@ -158,13 +158,26 @@ export default function DashboardPage() {
           )}
 
           {!isLoading && !error && filteredReports.length === 0 && (
-            <div className="px-5 py-10 text-center">
-              <p className="font-medium">No reports yet</p>
-              <p className="mt-2 text-sm text-slate-400">
-                Upload your first bug recording to start tracking reports.
-              </p>
-            </div>
-          )}
+  <div className="px-5 py-16 text-center">
+    <div className="text-5xl">🐞</div>
+
+    <p className="mt-4 text-lg font-semibold">
+      No bug reports yet
+    </p>
+
+    <p className="mt-2 text-sm text-slate-400">
+      Upload your first screen recording and let BugLens AI
+      extract frames, detect errors, and generate bug reports.
+    </p>
+
+    <Link
+      href="/reports/new"
+      className="mt-6 inline-block rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950"
+    >
+      Upload First Report
+    </Link>
+  </div>
+)}
 
           {!isLoading && !error && reports.length > 0 && (
             <div className="divide-y divide-slate-800">
@@ -172,7 +185,7 @@ export default function DashboardPage() {
                 <Link
   key={report.id}
   href={`/reports/${report.id}`}
-  className="grid gap-3 px-5 py-4 transition hover:bg-slate-800/60 md:grid-cols-[1fr_auto]"
+  className="grid gap-3 px-5 py-4 transition-all duration-200 hover:bg-slate-800/60 hover:scale-[1.01] md:grid-cols-[1fr_auto]"
 >
                   <div>
                     <p className="font-medium">{report.title}</p>
