@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { jsPDF } from "jspdf";
+import toast from "react-hot-toast";
 
 
 type Report = {
@@ -102,12 +103,15 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       }
 
       await loadReport(reportId);
+
+      toast.success("Frames extracted successfully!");
     } catch (extractError) {
       setError(
         extractError instanceof Error
           ? extractError.message
           : "Something went wrong."
       );
+      toast.error("Frame extraction failed!");
     } finally {
       setIsExtracting(false);
     }
@@ -138,12 +142,14 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
 
     await loadReport(reportId);
+    toast.success("OCR completed successfully!");
   } catch (extractError) {
     setError(
       extractError instanceof Error
         ? extractError.message
         : "Something went wrong."
     );
+    toast.error("OCR extraction failed!");
   } finally {
     setIsExtractingText(false);
   }
@@ -174,12 +180,14 @@ async function handleGenerateReport() {
     }
 
     await loadReport(reportId);
+    toast.success("AI bug report generated!");
   } catch (generateError) {
     setError(
       generateError instanceof Error
         ? generateError.message
         : "Something went wrong."
     );
+    toast.error("Report generation failed!");
   } finally {
     setIsGeneratingReport(false);
   }
