@@ -48,6 +48,14 @@ export default function DashboardPage() {
     loadReports();
   }, []);
 
+  function formatFileSize(bytes: number) {
+  return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString();
+}
+
 
   function getStatusLabel(status: string) {
   switch (status) {
@@ -239,9 +247,16 @@ export default function DashboardPage() {
                       {report.description || "No description provided"}
                     </p>
                     <p className="mt-2 text-xs text-slate-500">
-                      File: {report.original_filename} ·{" "}
-                      {Math.round(report.size_bytes / 1024)} KB
-                    </p>
+  📄 {report.original_filename}
+</p>
+
+<p className="mt-1 text-xs text-slate-500">
+  💾 {formatFileSize(report.size_bytes)}
+</p>
+
+<p className="mt-1 text-xs text-slate-500">
+  📅 {formatDate(report.created_at)}
+</p>
                   </div>
 
                   <div className="flex items-center gap-3">
