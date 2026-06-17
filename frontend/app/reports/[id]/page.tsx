@@ -483,7 +483,19 @@ function downloadReport() {
   {report.ai_report.split("\n").map((line, index) => (
     <p
       key={index}
-      className="mb-3 leading-relaxed"
+      className={`mb-3 rounded-md p-3 leading-relaxed ${
+  line.includes("Severity:")
+    ? "bg-yellow-950 border border-yellow-700"
+    : line.includes("Root Cause:")
+    ? "bg-red-950 border border-red-700"
+    : line.includes("Expected Behavior:")
+    ? "bg-green-950 border border-green-700"
+    : line.includes("Actual Behavior:")
+    ? "bg-blue-950 border border-blue-700"
+    : line.includes("Steps To Reproduce:")
+    ? "bg-purple-950 border border-purple-700"
+    : ""
+}`}
     >
       {line}
     </p>
