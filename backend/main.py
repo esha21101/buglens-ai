@@ -16,6 +16,9 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from database import SessionLocal
+from models import Report
+
 load_dotenv()
 
 genai.configure(
@@ -101,148 +104,224 @@ def health():
 
 @app.get("/reports")
 def get_reports():
-    reports = load_reports()
-    return {"reports": reports}
+    db = SessionLocal()
+
+    try:
+        reports = db.query(Report).all()
+
+        return {
+            "reports": [
+                {
+                    "id": report.id,
+                    "title": report.title,
+                    "description": report.description,
+                    "original_filename": report.original_filename,
+                    "stored_filename": report.stored_filename,
+                    "content_type": report.content_type,
+                    "size_bytes": report.size_bytes,
+                    "status": report.status,
+                    "created_at": report.created_at,
+                }
+                for report in reports
+            ]
+        }
+
+    finally:
+        db.close()
 
 @app.get("/reports/{report_id}")
 def get_report(report_id: str):
-    _, _, report = find_report(report_id)
+    db = SessionLocal()
 
-    if not report:
-        return {"error": "Report not found"}
+    try:
+        report = (
+            db.query(Report)
+            .filter(Report.id == report_id)
+            .first()
+        )
 
-    return report
+        if not report:
+            return {"error": "Report not found"}
+
+        return {
+            "id": report.id,
+            "title": report.title,
+            "description": report.description,
+            "original_filename": report.original_filename,
+            "stored_filename": report.stored_filename,
+            "content_type": report.content_type,
+            "size_bytes": report.size_bytes,
+            "status": report.status,
+            "created_at": report.created_at,
+            "updated_at": report.updated_at,
+            "frames": report.frames,
+            "ocr_text": report.ocr_text,
+            "detected_keywords": report.detected_keywords,
+            "ai_report": report.ai_report,
+        }
+
+    finally:
+        db.close()
 
 @app.post("/reports/{report_id}/extract-frames")
 def extract_report_frames(report_id: str):
-    reports, report_index, report = find_report(report_id)
+    db = SessionLocal()
 
-    if report_index is None or report is None:
-        return {"error": "Report not found"}
+    try:
+        report = (
+            db.query(Report)
+            .filter(Report.id == report_id)
+            .first()
+        )
 
-    video_path = UPLOAD_DIR / report["stored_filename"]
+        if not report:
+            return {"error": "Report not found"}
 
-    if not video_path.exists():
-        return {"error": "Uploaded video file not found"}
+        video_path = UPLOAD_DIR / report.stored_filename
 
-    report_frames_dir = FRAMES_DIR / report_id
-    report_frames_dir.mkdir(exist_ok=True)
+        if not video_path.exists():
+            return {"error": "Uploaded video file not found"}
 
-    frame_pattern = report_frames_dir / "frame_%03d.jpg"
+        report_frames_dir = FRAMES_DIR / report_id
+        report_frames_dir.mkdir(exist_ok=True)
 
-    command = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        str(video_path),
-        "-vf",
-        "fps=1/2",
-        "-frames:v",
-        "3",
-        str(frame_pattern),
-    ]
+        frame_pattern = report_frames_dir / "frame_%03d.jpg"
 
-    completed_process = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-    )
+        command = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(video_path),
+            "-vf",
+            "fps=1/2",
+            "-frames:v",
+            "3",
+            str(frame_pattern),
+        ]
 
-    if completed_process.returncode != 0:
+        completed_process = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+        )
+
+        if completed_process.returncode != 0:
+            return {
+                "error": "Frame extraction failed",
+                "details": completed_process.stderr,
+            }
+
+        frame_files = sorted(report_frames_dir.glob("*.jpg"))
+
+        frame_paths = [
+            str(frame_path).replace("\\", "/")
+            for frame_path in frame_files
+        ]
+
+        report.frames = json.dumps(frame_paths)
+        report.status = "frames_extracted"
+        report.updated_at = datetime.now(
+            timezone.utc
+        ).isoformat()
+
+        db.commit()
+
         return {
-            "error": "Frame extraction failed",
-            "details": completed_process.stderr,
+            "id": report_id,
+            "status": report.status,
+            "frames": frame_paths,
         }
 
-    frame_files = sorted(report_frames_dir.glob("*.jpg"))
-    frame_paths = [str(frame_path).replace("\\", "/") for frame_path in frame_files]
-
-    report["frames"] = frame_paths
-    report["status"] = "frames_extracted"
-    report["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-    reports[report_index] = report
-    save_reports(reports)
-
-    return {
-        "id": report_id,
-        "status": report["status"],
-        "frames": frame_paths,
-    }
-    
+    finally:
+        db.close()
     
 @app.post("/reports/{report_id}/extract-text")
 def extract_text(report_id: str):
-    reports, report_index, report = find_report(report_id)
+    db = SessionLocal()
 
-    if report_index is None or report is None:
-        return {"error": "Report not found"}
-
-    frame_paths = report.get("frames", [])
-
-    if not frame_paths:
-        return {"error": "No extracted frames found"}
-
-    extracted_text = []
-    detected_keywords = []
-
-    for frame_path in frame_paths:
-        image = Image.open(frame_path)
-
-        text = pytesseract.image_to_string(image)
-
-        extracted_text.append(
-            {
-                "frame": frame_path,
-                "text": text.strip(),
-            }
+    try:
+        report = (
+            db.query(Report)
+            .filter(Report.id == report_id)
+            .first()
         )
 
-        detected_keywords.extend(
-            detect_error_keywords(text)
+        if not report:
+            return {"error": "Report not found"}
+
+        frame_paths = report.frames
+
+        if not frame_paths:
+            return {"error": "No extracted frames found"}
+
+        extracted_text = []
+        detected_keywords = []
+
+        for frame_path in frame_paths:
+            image = Image.open(frame_path)
+
+            text = pytesseract.image_to_string(image)
+
+            extracted_text.append(
+                {
+                    "frame": frame_path,
+                    "text": text.strip(),
+                }
+            )
+
+            detected_keywords.extend(
+                detect_error_keywords(text)
+            )
+
+        report.ocr_text = json.dumps(extracted_text)
+        report.detected_keywords = json.dumps(
+            list(set(detected_keywords))
         )
+        report.status = "text_extracted"
+        report.updated_at = datetime.now(timezone.utc)
 
-    report["ocr_text"] = extracted_text
-    report["detected_keywords"] = list(set(detected_keywords))
-    report["status"] = "text_extracted"
-    report["updated_at"] = datetime.now(
-        timezone.utc
-    ).isoformat()
+        db.commit()
 
-    reports[report_index] = report
+        return {
+            "id": report_id,
+            "status": report.status,
+            "ocr_text": extracted_text,
+            "detected_keywords": list(set(detected_keywords)),
+        }
 
-    save_reports(reports)
-
-    return {
-        "id": report_id,
-        "status": report["status"],
-        "ocr_text": extracted_text,
-        "detected_keywords": report["detected_keywords"],
-    }    
+    finally:
+        db.close()
     
 @app.post("/reports/{report_id}/generate-report")
 def generate_report(report_id: str):
-    reports, report_index, report = find_report(report_id)
+    db = SessionLocal()
 
-    if report_index is None or report is None:
-        return {"error": "Report not found"}
+    try:
+        report = (
+            db.query(Report)
+            .filter(Report.id == report_id)
+            .first()
+        )
 
-    ocr_text = report.get("ocr_text", [])
+        if not report:
+            return {"error": "Report not found"}
 
-    if not ocr_text:
-        return {"error": "No OCR text found. Run OCR first."}
+        ocr_text = report.ocr_text
 
-    unique_texts = []
+        if not ocr_text:
+            return {"error": "No OCR text found. Run OCR first."}
 
-    for item in ocr_text:
-        text = item.get("text", "").strip()
+        unique_texts = []
 
-        if text and text not in unique_texts:
-            unique_texts.append(text)
+        for item in ocr_text:
+            text = item.get("text", "").strip()
 
-    combined_text = "\n\n".join(unique_texts)  
+            if text and text not in unique_texts:
+                unique_texts.append(text)
 
-    prompt = f"""
+        combined_text = "\n\n".join(unique_texts)
+
+        prompt = f"""
 You are a software QA engineer.
 
 Analyze the following OCR text extracted from a screen recording.
@@ -260,23 +339,24 @@ Actual Behavior:
 Steps To Reproduce:
 """
 
-    model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
-    response = model.generate_content(prompt)
+        response = model.generate_content(prompt)
 
-    report["ai_report"] = response.text
-    report["status"] = "report_generated"
-    report["updated_at"] = datetime.now(timezone.utc).isoformat()
+        report.ai_report = response.text
+        report.status = "report_generated"
+        report.updated_at = datetime.now(timezone.utc)
 
-    reports[report_index] = report
-    save_reports(reports)
+        db.commit()
 
-    return {
-        "status": report["status"],
-        "ai_report": report["ai_report"],
-    }
-    
+        return {
+            "status": report.status,
+            "ai_report": report.ai_report,
+        }
 
+    finally:
+        db.close()
+        
 @app.post("/reports/upload")
 async def upload_report(
     title: str = Form(...),
@@ -303,8 +383,25 @@ async def upload_report(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    reports = load_reports()
-    reports.insert(0, report)
-    save_reports(reports)
+    db = SessionLocal()
+
+    try:
+        db_report = Report(
+            id=report["id"],
+            title=report["title"],
+            description=report["description"],
+            original_filename=report["original_filename"],
+            stored_filename=report["stored_filename"],
+            content_type=report["content_type"],
+            size_bytes=report["size_bytes"],
+            status=report["status"],
+            created_at=report["created_at"],
+        )
+
+        db.add(db_report)
+        db.commit()
+
+    finally:
+        db.close()
 
     return report
