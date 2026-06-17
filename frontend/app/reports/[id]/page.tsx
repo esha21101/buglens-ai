@@ -479,9 +479,16 @@ function downloadReport() {
       </span>
     </div>
 
-    <div className="mt-4 whitespace-pre-wrap rounded-md bg-slate-950 p-4 text-sm text-slate-200">
-      {report.ai_report}
-    </div>
+    <div className="mt-4 rounded-md bg-slate-950 p-5 text-sm text-slate-200">
+  {report.ai_report.split("\n").map((line, index) => (
+    <p
+      key={index}
+      className="mb-3 leading-relaxed"
+    >
+      {line}
+    </p>
+  ))}
+</div>
   </div>
 )}
 

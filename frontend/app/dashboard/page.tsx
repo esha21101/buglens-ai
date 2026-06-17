@@ -201,11 +201,22 @@ function formatDate(dateString: string) {
             <h2 className="font-semibold">Recent reports</h2>
           </div>
 
-          {isLoading && (
-            <p className="px-5 py-6 text-sm text-slate-300">
-              Loading reports...
-            </p>
-          )}
+        {isLoading && (
+  <div className="space-y-4 p-5">
+    {[1, 2, 3].map((item) => (
+      <div
+        key={item}
+        className="animate-pulse rounded-lg border border-slate-800 p-4"
+      >
+        <div className="h-5 w-1/3 rounded bg-slate-700"></div>
+
+        <div className="mt-3 h-4 w-2/3 rounded bg-slate-800"></div>
+
+        <div className="mt-2 h-4 w-1/2 rounded bg-slate-800"></div>
+      </div>
+    ))}
+  </div>
+)}
 
           {error && (
             <p className="px-5 py-6 text-sm text-red-300">{error}</p>
