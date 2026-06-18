@@ -38,16 +38,19 @@ app.add_middleware(
 UPLOAD_DIR = Path("uploads")
 DATA_DIR = Path("data")
 FRAMES_DIR = Path("frames")
-app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
-REPORTS_FILE = DATA_DIR / "reports.json"
-if os.name == "nt":
-    pytesseract.pytesseract.tesseract_cmd = (
-        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    )
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 FRAMES_DIR.mkdir(exist_ok=True)
+
+app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
+
+REPORTS_FILE = DATA_DIR / "reports.json"
+
+if os.name == "nt":
+    pytesseract.pytesseract.tesseract_cmd = (
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    )
 
 
 def load_reports():
