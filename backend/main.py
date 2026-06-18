@@ -40,8 +40,10 @@ DATA_DIR = Path("data")
 FRAMES_DIR = Path("frames")
 app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
 REPORTS_FILE = DATA_DIR / "reports.json"
-TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+if os.name == "nt":
+    pytesseract.pytesseract.tesseract_cmd = (
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    )
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
