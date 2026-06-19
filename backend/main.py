@@ -254,7 +254,7 @@ def extract_text(report_id: str):
         if not report:
             return {"error": "Report not found"}
 
-        frame_paths = report.frames
+        frame_paths = json.loads(report.frames)
 
         if not frame_paths:
             return {"error": "No extracted frames found"}
@@ -311,7 +311,7 @@ def generate_report(report_id: str):
         if not report:
             return {"error": "Report not found"}
 
-        ocr_text = report.ocr_text
+        ocr_text = json.loads(report.ocr_text)
 
         if not ocr_text:
             return {"error": "No OCR text found. Run OCR first."}
