@@ -254,7 +254,7 @@ def extract_text(report_id: str):
         if not report:
             return {"error": "Report not found"}
 
-        frame_paths = json.loads(report.frames)
+        frame_paths = report.frames
 
         if not frame_paths:
             return {"error": "No extracted frames found"}
