@@ -2,11 +2,10 @@ import json
 import subprocess
 import os
 
-import pytesseract
 import google.generativeai as genai
 from dotenv import load_dotenv
-
 from PIL import Image
+
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,10 +46,6 @@ app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
 
 REPORTS_FILE = DATA_DIR / "reports.json"
 
-if os.name == "nt":
-    pytesseract.pytesseract.tesseract_cmd = (
-        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    )
 
 
 def load_reports():
@@ -78,24 +73,7 @@ def find_report(report_id: str):
 
     return reports, None, None
 
-def detect_error_keywords(text: str):
-    keywords = [
-        "error",
-        "failed",
-        "exception",
-        "undefined",
-        "null",
-        "unauthorized",
-        "forbidden",
-        "not found",
-        "404",
-        "500",
-        "timeout",
-        "crash",
-    ]
 
-    lower_text = text.lower()
-    return [keyword for keyword in keywords if keyword in lower_text]
 
 @app.get("/")
 def root():
@@ -160,8 +138,6 @@ def get_report(report_id: str):
             "created_at": report.created_at,
             "updated_at": report.updated_at,
             "frames": report.frames,
-            "ocr_text": report.ocr_text,
-            "detected_keywords": report.detected_keywords,
             "ai_report": report.ai_report,
         }
 
@@ -240,62 +216,6 @@ def extract_report_frames(report_id: str):
     finally:
         db.close()
     
-@app.post("/reports/{report_id}/extract-text")
-def extract_text(report_id: str):
-    db = SessionLocal()
-
-    try:
-        report = (
-            db.query(Report)
-            .filter(Report.id == report_id)
-            .first()
-        )
-
-        if not report:
-            return {"error": "Report not found"}
-
-        frame_paths = report.frames
-
-        if not frame_paths:
-            return {"error": "No extracted frames found"}
-
-        extracted_text = []
-        detected_keywords = []
-
-        for frame_path in frame_paths:
-            image = Image.open(frame_path)
-
-            text = pytesseract.image_to_string(image)
-
-            extracted_text.append(
-                {
-                    "frame": frame_path,
-                    "text": text.strip(),
-                }
-            )
-
-            detected_keywords.extend(
-                detect_error_keywords(text)
-            )
-
-        report.ocr_text = json.dumps(extracted_text)
-        report.detected_keywords = json.dumps(
-            list(set(detected_keywords))
-        )
-        report.status = "text_extracted"
-        report.updated_at = datetime.now(timezone.utc)
-
-        db.commit()
-
-        return {
-            "id": report_id,
-            "status": report.status,
-            "ocr_text": extracted_text,
-            "detected_keywords": list(set(detected_keywords)),
-        }
-
-    finally:
-        db.close()
     
 @app.post("/reports/{report_id}/generate-report")
 def generate_report(report_id: str):
@@ -311,46 +231,68 @@ def generate_report(report_id: str):
         if not report:
             return {"error": "Report not found"}
 
-        ocr_text = json.loads(report.ocr_text)
+        frame_paths = report.frames
 
-        if not ocr_text:
-            return {"error": "No OCR text found. Run OCR first."}
+        if isinstance(frame_paths, str):
+            frame_paths = json.loads(frame_paths)
+        
+        print(type(frame_paths))
+        print(frame_paths)
 
-        unique_texts = []
+        if not frame_paths:
+            return {
+                "error":
+                "No extracted frames found."
+            }
 
-        for item in ocr_text:
-            text = item.get("text", "").strip()
+        images = []
 
-            if text and text not in unique_texts:
-                unique_texts.append(text)
+        for frame_path in frame_paths:
+            image = Image.open(frame_path)
+            images.append(image)
 
-        combined_text = "\n\n".join(unique_texts)
+        prompt = """
+You are a Senior Software QA Engineer.
 
-        prompt = f"""
-You are a software QA engineer.
+These screenshots were extracted from a user screen recording.
 
-Analyze the following OCR text extracted from a screen recording.
+Analyze all screenshots carefully.
 
-OCR TEXT:
-{combined_text}
+Generate a professional bug report.
 
-Generate a bug report in this exact format:
+Follow this exact format:
 
 Title:
+
 Severity:
+
 Root Cause:
+
 Expected Behavior:
+
 Actual Behavior:
+
 Steps To Reproduce:
+
+Visible Errors:
+
+Additional Observations:
+
 """
 
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel(
+            "gemini-2.5-flash"
+        )
 
-        response = model.generate_content(prompt)
+        response = model.generate_content(
+            [prompt] + images
+        )
 
         report.ai_report = response.text
         report.status = "report_generated"
-        report.updated_at = datetime.now(timezone.utc)
+        report.updated_at = datetime.now(
+            timezone.utc
+        )
 
         db.commit()
 
@@ -384,7 +326,7 @@ async def upload_report(
         "stored_filename": stored_filename,
         "content_type": video.content_type,
         "size_bytes": len(contents),
-        "status": "uploaded",
+        "status": "processing",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -407,6 +349,15 @@ async def upload_report(
         db.commit()
 
     finally:
-        db.close()
+            db.close()
 
-    return report
+    frames_result = extract_report_frames(report_id)
+
+    report_result = generate_report(report_id)
+
+    return {
+    "id": report_id,
+    "status": "report_generated",
+    "frames": frames_result,
+    "report": report_result
+}
