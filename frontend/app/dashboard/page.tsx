@@ -26,7 +26,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadReports() {
       try {
-        const response = await fetch("http://localhost:8000/reports");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports`);
 
         if (!response.ok) {
           throw new Error("Could not load reports.");

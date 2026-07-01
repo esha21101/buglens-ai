@@ -33,7 +33,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [error, setError] = useState("");
 
   async function loadReport(id: string) {
-    const response = await fetch(`http://localhost:8000/reports/${id}`);
+    const response = await fetch(
+`${process.env.NEXT_PUBLIC_API_URL}/reports/${id}`
+);
 
     if (!response.ok) {
       throw new Error("Could not load report.");
@@ -274,7 +276,7 @@ Bug Report
                   {report.frames.map((frame) => (
                     <img
                       key={frame}
-                      src={`http://localhost:8000/${frame}`}
+                      src={`${process.env.NEXT_PUBLIC_API_URL}/${frame}`}
                       alt="Extracted video frame"
                       className="aspect-video rounded-md border border-slate-800 object-cover"
                     />

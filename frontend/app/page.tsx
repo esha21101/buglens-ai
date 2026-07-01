@@ -45,7 +45,7 @@ export default function NewReportPage() {
     try {
       setIsUploading(true);
 
-      const response = await fetch("http://localhost:8000/reports/upload", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/upload`, {
         method: "POST",
         body: formData,
       });
