@@ -1,23 +1,21 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type UploadResult = {
   id: string;
-  title: string;
-  description: string;
-  original_filename: string;
-  stored_filename: string;
-  content_type: string;
-  size_bytes: number;
   status: string;
 };
 
 export default function NewReportPage() {
+
+  const router = useRouter();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [video, setVideo] = useState<File | null>(null);
-  const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
@@ -25,7 +23,6 @@ export default function NewReportPage() {
     event.preventDefault();
 
     setError("");
-    setResult(null);
 
     if (!title.trim()) {
       setError("Please enter a bug title.");
@@ -55,7 +52,8 @@ export default function NewReportPage() {
       }
 
       const data = (await response.json()) as UploadResult;
-      setResult(data);
+
+router.push(`/reports/${data.id}`);
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -70,9 +68,9 @@ export default function NewReportPage() {
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-3xl">
-        <a href="/" className="text-sm font-medium text-cyan-300">
-          BugLens AI
-        </a>
+        <Link href="/" className="text-sm font-medium text-cyan-300">
+  BugLens AI
+</Link>
 
         <h1 className="mt-6 text-3xl font-semibold">Create Bug Report</h1>
         <p className="mt-2 text-slate-300">
@@ -119,20 +117,16 @@ export default function NewReportPage() {
             </p>
           )}
 
-          {result && (
-            <div className="mt-4 rounded-md border border-emerald-800 bg-emerald-950 px-3 py-3 text-sm text-emerald-100">
-              <p className="font-semibold">Upload successful</p>
-              <p className="mt-1">File: {result.original_filename}</p>
-              <p>Status: {result.status}</p>
-              <p>Size: {Math.round(result.size_bytes / 1024)} KB</p>
-            </div>
-          )}
 
           <button
             disabled={isUploading}
             className="mt-5 rounded-md bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isUploading ? "Uploading..." : "Upload recording"}
+            {
+isUploading
+? "Processing recording..."
+: "Upload recording"
+}
           </button>
         </form>
       </section>
