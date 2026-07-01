@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 
 type UploadResult = {
   id: string;
@@ -70,9 +71,12 @@ export default function NewReportPage() {
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
       <section className="mx-auto max-w-3xl">
-        <a href="/" className="text-sm font-medium text-cyan-300">
-          BugLens AI
-        </a>
+        <Link
+  href="/"
+  className="text-sm font-medium text-cyan-300"
+>
+  BugLens AI
+</Link>
 
         <h1 className="mt-6 text-3xl font-semibold">Create Bug Report</h1>
         <p className="mt-2 text-slate-300">
