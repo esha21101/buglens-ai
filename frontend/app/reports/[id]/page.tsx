@@ -17,13 +17,6 @@ type Report = {
   created_at: string;
   frames?: string[];
 
-  ocr_text?: {
-    frame: string;
-    text: string;
-  }[];
-
-  detected_keywords?: string[];
-
   ai_report?: string; 
 };
 
@@ -37,9 +30,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [reportId, setReportId] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [isExtractingText, setIsExtractingText] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [error, setError] = useState("");
 
   async function loadReport(id: string) {
@@ -77,121 +67,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
     loadInitialReport();
   }, [params]);
-
-  async function handleExtractFrames() {
-    if (!reportId) return;
-
-    try {
-      setError("");
-      setIsExtracting(true);
-
-      const response = await fetch(
-        `http://localhost:8000/reports/${reportId}/extract-frames`,
-        {
-          method: "POST",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Frame extraction failed.");
-      }
-
-      const data = (await response.json()) as { error?: string };
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      await loadReport(reportId);
-
-      toast.success("Frames extracted successfully!");
-    } catch (extractError) {
-      setError(
-        extractError instanceof Error
-          ? extractError.message
-          : "Something went wrong."
-      );
-      toast.error("Frame extraction failed!");
-    } finally {
-      setIsExtracting(false);
-    }
-  }
-
-  async function handleExtractText() {
-  if (!reportId) return;
-
-  try {
-    setError("");
-    setIsExtractingText(true);
-
-    const response = await fetch(
-      `http://localhost:8000/reports/${reportId}/extract-text`,
-      {
-        method: "POST",
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("OCR extraction failed.");
-    }
-
-    const data = (await response.json()) as { error?: string };
-
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    await loadReport(reportId);
-    toast.success("OCR completed successfully!");
-  } catch (extractError) {
-    setError(
-      extractError instanceof Error
-        ? extractError.message
-        : "Something went wrong."
-    );
-    toast.error("OCR extraction failed!");
-  } finally {
-    setIsExtractingText(false);
-  }
-}
-
-async function handleGenerateReport() {
-  if (!reportId) return;
-
-  try {
-    setError("");
-    setIsGeneratingReport(true);
-
-    const response = await fetch(
-      `http://localhost:8000/reports/${reportId}/generate-report`,
-      {
-        method: "POST",
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Report generation failed.");
-    }
-
-    const data = (await response.json()) as { error?: string };
-
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    await loadReport(reportId);
-    toast.success("AI bug report generated!");
-  } catch (generateError) {
-    setError(
-      generateError instanceof Error
-        ? generateError.message
-        : "Something went wrong."
-    );
-    toast.error("Report generation failed!");
-  } finally {
-    setIsGeneratingReport(false);
-  }
-}
 
 
 function getSeverityColor(reportText: string) {
@@ -316,31 +191,33 @@ function downloadReport() {
                 <div className="flex items-center justify-between gap-4">
   <h2 className="font-semibold">AI processing</h2>
 
-  <div className="flex gap-2">
-    <button
-      onClick={handleExtractFrames}
-      disabled={isExtracting}
-      className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {isExtracting ? "Extracting..." : "Extract frames"}
-    </button>
+  <div className="rounded-md bg-slate-950 p-4">
 
-    <button
-      onClick={handleExtractText}
-      disabled={isExtractingText}
-      className="rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {isExtractingText ? "Extracting..." : "Extract text"}
-    </button>
+<p className="text-sm text-slate-300">
 
-    <button
-    onClick={handleGenerateReport}
-    disabled={isGeneratingReport}
-    className="rounded-md bg-purple-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-  >
-    {isGeneratingReport ? "Generating..." : "Generate report"}
-  </button>
-  </div>
+Pipeline:
+
+</p>
+
+<p className="mt-2 text-sm">
+
+Upload Video
+
+→
+
+Frame Extraction
+
+→
+
+Gemini Vision
+
+→
+
+Bug Report
+
+</p>
+
+</div>
 </div>
 
                 <div className="mt-6 flex items-center justify-between">
@@ -369,18 +246,6 @@ function downloadReport() {
 
   <div className="h-1 flex-1 bg-slate-700 mx-2" />
 
-  <div className="flex flex-col items-center">
-    <div
-      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white ${
-        report.ocr_text?.length
-          ? "bg-emerald-500"
-          : "bg-slate-700"
-      }`}
-    >
-      ✓
-    </div>
-    <p className="mt-2 text-xs text-slate-300">OCR</p>
-  </div>
 
   <div className="h-1 flex-1 bg-slate-700 mx-2" />
 
@@ -417,47 +282,6 @@ function downloadReport() {
                 </div>
               </div>
             )}
-
-          {report.detected_keywords &&
-  report.detected_keywords.length > 0 && (
-    <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-5">
-      <h2 className="font-semibold">Detected Keywords</h2>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {report.detected_keywords.map((keyword) => (
-          <span
-            key={keyword}
-            className="rounded-full bg-red-500/20 px-3 py-1 text-sm font-medium text-red-300"
-          >
-            {keyword}
-          </span>
-        ))}
-      </div>
-    </div>
-)}
-
-          {report.ocr_text && report.ocr_text.length > 0 && (
-  <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-5">
-    <h2 className="font-semibold">Detected Text</h2>
-
-    <div className="mt-4 space-y-4">
-      {report.ocr_text.map((item, index) => (
-        <div
-          key={index}
-          className="rounded-md border border-slate-800 bg-slate-950 p-4"
-        >
-          <p className="text-sm font-semibold text-cyan-300">
-            Frame {index + 1}
-          </p>
-
-          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">
-            {item.text || "No text detected"}
-          </p>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
 
 {report.ai_report && (
   <div className="mt-8 rounded-lg border border-purple-800 bg-slate-900 p-5">
